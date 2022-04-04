@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static java.util.Comparator.comparing;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
@@ -50,12 +52,13 @@ public class App {
 				    .build())
 			{
 			    return csvReader.readAll().stream().map( ind -> {
-			    	int year = 1960;
-			    	List<IndYear> listIndYear = new ArrayList<>();
-			    	for (int i = 4; i < ind.length -1; i++) {
-			    		listIndYear.add(new IndYear(year,ind[i].isBlank() ? 0.0 : Double.valueOf(ind[i])));
-			    		year++;
-			    	}
+			    	var year = new AtomicInteger(1960);
+			    	var listIndYear = Arrays.asList(ind)
+			    	      .stream()
+			    	      .limit(ind.length - 1)
+			    	      .skip(4)
+			    	      .map(val -> new IndYear(year.getAndIncrement(),val.isBlank() ? 0.0 : Double.valueOf(val)))
+			    	      .toList();
 			    	return new IndGen(ind[0],ind[1],ind[2],ind[3], listIndYear);
 			    })
 			    .toList();
@@ -108,7 +111,7 @@ public class App {
 	               .limit(20)
 	               .toList();
 		System.out.println("- ".repeat(41));
-		System.out.println("LOS MAS BAJOS 2019");
+		System.out.println("LOS MAS BAJOS " + year);
 		topMenorPib2019.forEach( r -> {
 			var pib = "%.4f".formatted(r.pib);
 			pib = " ".repeat(15 - pib.length()) + pib;
@@ -129,11 +132,11 @@ public class App {
 				            	   return new RegistroPais(ind.cName, pib.isPresent() ? pib.get().value : 0.0);
 				               })
 				               .filter(r -> r.pib > 0)
-				               .sorted(comparing(RegistroPais::pib))//(a,b) -> b.pib.compareTo(a.pib)
+				               .sorted(comparing(RegistroPais::pib).reversed())
 				               .limit(20)
 				               .toList();
 		System.out.println("- ".repeat(41));
-		System.out.println("LOS MAS ALTOS 2020");
+		System.out.println("LOS MAS ALTOS " + year);
 		topMayorPib2020.forEach( r -> {
 			var pib = "%.4f".formatted(r.pib);
 			pib = " ".repeat(15 - pib.length()) + pib;
